@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
 ls
-sleep 10
+sleep 30
 ls
 

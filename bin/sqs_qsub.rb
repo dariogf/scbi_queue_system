@@ -4,15 +4,26 @@ $: << File.join(File.dirname(__FILE__),'..','lib')
 
 require 'scbi_queue_system'
 
-if ARGV.count != 1
+if ARGV.count == 0
   puts "#{File.basename($0)} submit_script"
   exit -1
 end
-submit_script=ARGV[0]
+submit_script=ARGV.shift
 
 if !File.exists?(submit_script)
   puts "File #{submit_script} doesn't exists"
   exit -1
+end
+
+cpus=1
+
+begin
+  cpus=ARGV.shift.to_i
+  if cpus==0 
+    cpus=1
+  end
+rescue
+  cpus=1
 end
 
 t=Time.now
@@ -21,5 +32,21 @@ filename = ("%04d%02d%02d-%02d%02d%02d-%07d" % [t.year,t.month,t.day,t.hour,t.mi
 filename += ('_' + File.basename(submit_script))
 
 # copy file to queued
-FileUtils.cp(submit_script,File.join(QUEUED_PATH,filename))
+original_script=File.read(submit_script)
+
+# FileUtils.cp(submit_script,File.join(QUEUED_PATH,filename))
+
+f=File.open(File.join(QUEUED_PATH,filename),'a')
+
+f.puts '#!/usr/bin/env bash'
+f.puts "cd \"#{Dir.pwd}\""
+f.puts "# CWD = #{Dir.pwd}"
+f.puts "# CPUS = #{cpus}"
+f.puts "# SCRIPT = #{File.expand_path(submit_script)}"
+f.puts "# RUN_SCRIPT = #{filename}"
+f.puts original_script
+f.close
+
+`chmod +x #{File.join(QUEUED_PATH,filename)}`
+
 puts "File submitted"
