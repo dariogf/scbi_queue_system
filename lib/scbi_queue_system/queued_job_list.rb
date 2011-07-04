@@ -33,7 +33,13 @@ class QueuedJobList < JobList
     if system(copy_cmd)
       # launch_cmd = "ssh #{machine} \"nohup bash < #{job[:script]} > #{output_file} 2> #{error_file} & \""
       script_on_machine = File.join(job[:cwd],job[:name])
-      launch_cmd = "ssh #{machine} \"nohup #{script_on_machine} </dev/null > #{output_file} 2> #{error_file} &\""
+
+      if machine.upcase.index('LOCALHOST')
+        launch_cmd = "nohup #{script_on_machine} </dev/null > #{output_file} 2> #{error_file} &"
+      else
+        launch_cmd = "ssh #{machine} \"nohup #{script_on_machine} </dev/null > #{output_file} 2> #{error_file} &\""
+      end
+
       $LOG.info("Launch cmd: #{launch_cmd}")
       if system(launch_cmd)
         $LOG.info "LAUNCH DONE"

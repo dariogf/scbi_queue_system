@@ -47,11 +47,6 @@ require 'running_job_list'
 require 'queued_job_list'
 require 'done_job_list'
 
-require 'queue_system'
-include QueueSystem
-
-
-
 
 module ScbiQueueSystem
   VERSION = '0.0.1'

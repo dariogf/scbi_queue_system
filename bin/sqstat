@@ -1,0 +1,74 @@
+#!/usr/bin/env ruby
+
+$: << File.join(File.dirname(__FILE__),'..','lib')
+
+require 'scbi_queue_system'
+require 'optparse'
+
+DEFAULT_INTERVAL=10
+# bucle=ARGV.shift
+
+
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($0)} [options]"
+
+  options[:loop]=false
+  options[:interval]=DEFAULT_INTERVAL
+  
+  opts.on("-l", "--loop [INTERVAL]", "Run continuously") do |i|
+    options[:loop] = true
+    options[:interval] = i.to_i
+    if options[:interval]==0
+      options[:interval]=DEFAULT_INTERVAL
+    end
+  end
+
+  opts.on("-d", "--done", "Also show done jobs") do |d|
+    options[:done] = d
+  end
+
+end.parse!
+
+
+
+# if ARGV.count == 1
+#   puts "#{File.basename($0)} submit_script"
+#   exit -1
+# end
+
+def stat(with_done_jobs)
+  queued=QueuedJobList.new
+  running=RunningJobList.new
+
+  puts queued.stats_header
+  puts queued.to_s
+  puts running.to_s
+  puts
+  
+  if with_done_jobs
+    done=DoneJobList.new
+    puts "Recently DONE jobs:"
+    puts done.to_s
+  end
+
+end
+
+if options[:loop]
+
+  exit_loop=false
+
+  Signal.trap("INT") do
+    puts "Terminating, wait #{options[:interval]} seconds"
+    exit_loop=true
+  end
+
+  begin
+    print "\e[2J\e[f"
+    stat(options[:done])
+    sleep options[:interval]
+  end while !exit_loop
+else
+  
+  stat(options[:done])
+end

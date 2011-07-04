@@ -17,33 +17,47 @@ $LOG.info 'Starting up SQS'
 
 # LOAD CONFIG FILES
 
-$LOG.info 'Reading config files'
+def load_config
+  
+  $LOG.info 'Reading config files'
 
-if File.exists?(CONFIG_FILE)
-  config_txt=File.read(CONFIG_FILE)
-  config=JSON::parse(config_txt,:symbolize_names => true)
-  $LOG.info 'Config loaded'
-  puts config.to_json
-else
-  # default config
-  config={}
+  if File.exists?(CONFIG_FILE)
+    config_txt=File.read(CONFIG_FILE)
 
-  config[:polling_time] = 10
-  config[:machine_list] = []
-  # config[:sqs_user] = 'dariogf'
+    # remove comments
+    config_txt_cleaned=config_txt.split("\n").select{|l| !(l=~ /^\s*\#/)}.join("\n")
+    # puts config_txt_cleaned
+    config=JSON::parse(config_txt_cleaned,:symbolize_names => true)
+    
+  else
+    # default config
+    config={}
 
-  f=File.open(CONFIG_FILE,'w')
-  f.puts JSON::pretty_generate(config)
-  f.close
+    config[:polling_time] = 10
+    config[:machine_list] = []
+    machine={:name=>'localhost', :cpus => 1}
+    
+    config[:machine_list] << machine
+    # config[:sqs_user] = 'dariogf'
+
+    f=File.open(CONFIG_FILE,'w')
+    f.puts "# You can add comment lines to this config file"
+    
+    f.puts JSON::pretty_generate(config)
+    f.close
+    $LOG.debug "Generating default config. You can modify it by editing #{CONFIG_FILE}"
+  end
+
+  $LOG.debug "Config loaded #{config.to_json}"
+
+
+  # # create machine slots
+  config[:machine_list].each do |machine|
+    FileUtils.mkdir_p(File.join(RUNNING_PATH,machine[:name]))
+    FileUtils.mkdir_p(File.join(SENT_PATH,machine[:name]))
+  end
+  return config
 end
-
-
-# # create machine slots
-config[:machine_list].each do |machine|
-  FileUtils.mkdir_p(File.join(RUNNING_PATH,machine[:name]))
-  FileUtils.mkdir_p(File.join(SENT_PATH,machine[:name]))
-end
-
 
 def select_next_jobs(machines,queued,running)
   # select next job for running
@@ -91,8 +105,12 @@ def select_next_jobs(machines,queued,running)
     machines.each do |machine|
 
       running_in_machine=running.running_jobs_in_machine(machine[:name])
-
-      cmd="ssh #{machine[:name]} \"ps -o command ax\""
+      if machine[:name].upcase.index('LOCALHOST')
+        cmd= machine[:ps_command] || "ps ax -o command"
+      else
+        ps_cmd=machine[:ps_command] || "ps ax -o command"
+        cmd="ssh #{machine[:name]} \"#{ps_cmd}\""
+      end
       # puts cmd
       res=`#{cmd}`
 
@@ -117,9 +135,20 @@ def select_next_jobs(machines,queued,running)
 
   end
 
+  config=load_config
+      
+  exit_loop=false
+
+  Signal.trap("INT") do
+    puts "Terminating SQS manager..."
+    puts "Please wait #{config[:polling_time]} seconds..."
+    exit_loop=true
+  end
+
   # event loop
   begin
-
+    
+    config=load_config
     # clear screen
     # print "\e[2J\e[f"
 
@@ -151,11 +180,11 @@ def select_next_jobs(machines,queued,running)
 
     # queued=QueuedJobList.new
     # running=RunningJobList.new
-    # 
+    #
     # puts queued.stats_header
     # puts queued.to_s
     # puts running.to_s
 
 
     sleep config[:polling_time]
-  end while 1
+  end while !exit_loop
