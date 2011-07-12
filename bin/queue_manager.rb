@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-$: << File.join(File.dirname(__FILE__),'..','lib')
+# $: << File.join(File.dirname(__FILE__),'..','lib')
 
 require 'scbi_queue_system'
 require 'logger'
@@ -9,9 +9,19 @@ require 'running_job_list'
 require 'queued_job_list'
 require 'done_job_list'
 
+system_log_message="SCBI SQS queue at: #{QUEUED_PATH}"
+`logger "#{system_log_message}"`
 
-# $LOG = Logger.new(LOG_FILE, 10, 1024000)
-$LOG = Logger.new(STDOUT, 10, 1024000)
+user=`whoami`
+system_log_message="SCBI SQS user: #{user}"
+`logger "#{system_log_message}"`
+
+
+$LOG = Logger.new(LOG_FILE, 10, 1024000)
+
+# $LOG = Logger.new(STDOUT, 10, 1024000)
+
+$LOG.level = Logger::INFO
 
 $LOG.info 'Starting up SQS'
 
@@ -35,7 +45,16 @@ def load_config
 
     config[:polling_time] = 10
     config[:machine_list] = []
-    machine={:name=>'localhost', :cpus => 1}
+    
+    cpus=1
+    
+    if RUBY_PLATFORM.downcase.include?("darwin")
+      cpus=`hwprefs -cpu_count`.chomp.to_i
+    else
+      cpus=`grep processor /proc/cpuinfo |wc -l`.chomp.to_i
+    end
+    
+    machine={:name=>'localhost', :cpus => cpus}
     
     config[:machine_list] << machine
     # config[:sqs_user] = 'dariogf'

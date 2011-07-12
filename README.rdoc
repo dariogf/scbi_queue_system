@@ -1,32 +1,122 @@
 = scbi_queue_system
 
-* http://github.com/#{github_username}/#{project_name}
+* http://www.scbi.uma.es/downloads
 
 == DESCRIPTION:
 
-FIX (describe your package)
+scbi_queue_system (SQS) handles a simple queue of jobs executions over multiple machines (clustered installation) or your own personal computer.
 
 == FEATURES/PROBLEMS:
 
-* FIX (list of features or problems)
+* SQS can be used as very simple batch queue system for personal multicore computers as well as for small clusters
+* It handles machines with different number of cores/CPUs
+* It believes on well intentioned users, and because of that it doesn't kill jobs if they are using more CPUs than requested
+* All jobs run under the same user (the one that SQS manager run under)
 
 == SYNOPSIS:
 
-  FIX (code sample of usage)
+Once SQS is installed and queue manager is running, you can start using it:
+
+=== To submit a new job:
+
+  sqsub file.sh
+
+where file.sh is a script file where you run your programs. Example file issuing ls and hostname commands:
+
+  $> cat file.sh 
+  #!/usr/bin/env bash
+
+  ls
+  hostname
+
+=== To submit a new job using 4 cpus:
+
+  sqsub file.sh 4
+
+You can also set the cpu count inside the submit script this way:
+
+  $> cat file.sh 
+  #!/usr/bin/env bash
+  # CPUS = 4
+
+  ls
+  hostname
+
+=== To view queue status
+
+  sqstat
+  
+To view already done jobs:
+  
+  sqstat -d
+  
 
 == REQUIREMENTS:
 
-* FIX (list of requirements)
+* OS X / linux operating systems.
 
 == INSTALL:
 
-* FIX (sudo gem install, anything else)
+=== 1.- Personal/standalone computer:
+
+In a personal installation, all pieces of the queue system are installed on the same computer. To install the queue manager on one computer:
+
+  gem install scbi_queue_system
+
+Once installed, you should start the queue manager:
+
+  queue_manager.rb
+
+By default, it is configured to use localhost with 1 cpu as testing
+  
+<b>NOTE:</b> See automatic startup
+
+
+=== 2.-Cluster:
+
+On a clustered installation you need to choose a node to act as the queue manager. 
+
+==== -On the manager machine
+
+Install SQS on the manager machine:
+
+  gem install scbi_queue_system
+
+Start the queue manager:
+
+  queue_manager.rb
+
+Share your QUEUED folder with frontend machines and give write-only permission to others (chmod 772)
+
+==== -On the frontends machines:
+
+Later on, you should install the sqsub command on your cluster's frontend machines (the one/ones from where you are going to submit jobs).
+
+  gem install scbi_queue_system
+
+=== 3.- Environment variables:
+
+* SQS_BASE_PATH : sets the location of sqs directoies. 
+
+* SQS_QUEUED_PATH : sets the location of QUEUED directory. This location must be shared and with write only permissions for all SQS clients (those that need to use sqsub).
+
+* SQS_LOG_FILE: sets the location of log files.
+
+=== 4.- Automatic startup
+
+Once the gem is installed you can start the queue manager (it is recommended to setup automatic startup so you don't have to start it manually after each reboot). The queue manager only should be started up in the manager machine, and not on frontends.
+
+==== -On Linux
+
+
+==== -On Mac OS X
+
 
 == LICENSE:
 
 (The MIT License)
 
-Copyright (c) 2011 FIXME full name
+Copyright (c) 2011 Dario guerrero
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the

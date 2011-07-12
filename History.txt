@@ -1,3 +1,7 @@
+=== 0.0.2 2011-07-12
+
+Fixed daemon installation
+
 === 0.0.1 2011-06-28
 
 * 1 major enhancement:
