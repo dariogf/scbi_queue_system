@@ -67,9 +67,16 @@ Once installed, you should start the queue manager:
 
   queue_manager.rb
 
-By default, it is configured to use localhost with 1 cpu as testing
+By default, it is configured to use localhost with all available cpus.
   
-<b>NOTE:</b> See automatic startup
+
+Once the gem is installed you can start the queue manager (it is recommended to setup automatic startup so you don't have to start it manually after each reboot). The queue manager only should be started up in the manager machine, and not on frontends. This script will enable automatic startup on OSX or linux:
+
+  sudo sqs_install_daemon SQS_USER
+  
+Be sure to use a SQS_USER different to root.
+
+
 
 
 === 2.-Cluster:
@@ -86,31 +93,33 @@ Start the queue manager:
 
   queue_manager.rb
 
-Share your QUEUED folder with frontend machines and give write-only permission to others (chmod 772)
+<b>If you are using a front-end machine<b/>: Share your QUEUED folder with frontend machines and give write-only permission to others (chmod 772)
+
+Enable automatic startup
+
+Once the gem is installed you can start the queue manager (it is recommended to setup automatic startup so you don't have to start it manually after each reboot). The queue manager only should be started up in the manager machine, and not on frontends. This script will enable automatic startup on OSX or linux:
+
+  sudo sqs_install_daemon SQS_USER
+  
+Be sure to use a SQS_USER different to root.
+
 
 ==== -On the frontends machines:
 
 Later on, you should install the sqsub command on your cluster's frontend machines (the one/ones from where you are going to submit jobs).
 
   gem install scbi_queue_system
+  
+After gem installation you need to define the SQS_QUEUED_PATH environment variable and point it to the shared QUEUED folder of your manager machine.
+
 
 === 3.- Environment variables:
 
-* SQS_BASE_PATH : sets the location of sqs directoies. 
+* SQS_BASE_PATH : sets the location of sqs directories. 
 
 * SQS_QUEUED_PATH : sets the location of QUEUED directory. This location must be shared and with write only permissions for all SQS clients (those that need to use sqsub).
 
 * SQS_LOG_FILE: sets the location of log files.
-
-=== 4.- Automatic startup
-
-Once the gem is installed you can start the queue manager (it is recommended to setup automatic startup so you don't have to start it manually after each reboot). The queue manager only should be started up in the manager machine, and not on frontends.
-
-==== -On Linux
-
-
-==== -On Mac OS X
-
 
 == LICENSE:
 
