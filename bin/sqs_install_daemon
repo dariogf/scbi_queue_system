@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+
+require 'fileutils'
+
+user_name=ARGV.shift
+
+if user_name.nil? || user_name.empty? || user_name=='root'
+  puts "You must provide an user name to run SQS with that user instead of root"
+  exit -1
+end
+
+if RUBY_PLATFORM.downcase.include?("darwin")
+  daemon_path=File.join(File.dirname(__FILE__),'..','lib','scbi_queue_system','autolaunch','com.scbi_queue_system.plist')
+  destination_path=File.expand_path(File.join('/','Library','LaunchDaemons','com.scbi_queue_system.plist'))
+  
+  if system('launchctl list com.scbi_queue_system.plist')
+    puts "Daemon already installed, uninstalling it. Run again to install"
+    `sudo -u #{user_name} launchctl unload #{destination_path}`
+    FileUtils.rm destination_path
+  else
+    puts "Installing daemon"
+    text=File.read(daemon_path)
+    
+    text.gsub!('USER_NAME',user_name)
+    
+    f=File.open(destination_path,'w')
+    f.puts text
+    f.close
+    
+    FileUtils.chown user_name, nil, destination_path
+    
+    FileUtils.chmod 0755, destination_path
+    
+    # FileUtils.cp dameon_path, destination_path
+    `sudo -u #{user_name} launchctl load #{destination_path}`
+  end
+else
+  daemon_path=File.join(File.dirname(__FILE__),'..','lib','scbi_queue_system','autolaunch','sqsd-linux')
+    destination_path=File.join('/','etc','init.d','sqsd-linux')
+    check=`chkconfig -l |grep -c sqsd-linux`.chomp
+    puts "Checking #{check}"
+
+    if check!='0'
+      puts "Daemon already installed, uninstalling it. Run again to install"
+
+      `#{destination_path} stop`
+      `chkconfig -d sqsd-linux`
+      FileUtils.rm destination_path
+    else
+
+      puts "Installing daemon #{daemon_path}"
+
+      text=File.read(daemon_path)
+      text.gsub!('USER_NAME',user_name)
+
+      f=File.open(destination_path,'w')
+      f.puts text
+      f.close
+
+      FileUtils.chown user_name, nil, destination_path
+      FileUtils.chmod 0755, destination_path
+      `#{destination_path} start`
+      `chkconfig -a sqsd-linux`
+    end
+end
+
+puts "Finished"
